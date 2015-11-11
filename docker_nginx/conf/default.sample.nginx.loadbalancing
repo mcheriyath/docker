@@ -1,0 +1,52 @@
+upstream java_application  {
+  server 192.168.0.2:8080 max_fails=1 fail_timeout=10s;
+  server 192.168.0.3:8080 max_fails=1 fail_timeout=10s;
+  server 192.168.0.4:8080 max_fails=1 fail_timeout=10s;
+  # and so on: server 192.168.0.x;
+}
+server {
+  listen 80;
+
+  access_log  /var/log/nginx/java.example.com.access.log;
+  error_log  /var/log/nginx/java.example.com.error.log;
+
+
+  root /var/www/html;
+  try_files /maintenance.html $uri $uri/index.html $uri.html @secure;
+
+  location @secure {
+    rewrite ^ https://java.example.com permanent;
+  }
+
+}
+server {
+  listen 443;
+  server_name java.example.com someotherurl.com;
+
+  access_log  /var/log/nginx/java.example.com.ssl.access.log;
+  error_log  /var/log/nginx/java.example.com.ssl.error.log;
+
+  root /var/www/html;
+  try_files /maintenance.html $uri $uri/index.html $uri.html @proxy;
+
+  if ($host != 'java.example.com') {
+    rewrite ^/(.*)$ https://java.example.com/$1 permanent;
+  }
+
+  ssl on;
+  ssl_certificate cert.crt;
+  ssl_certificate_key cert.key;
+
+  location @proxy {
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    proxy_pass  http://java_application;
+    proxy_redirect http://java.example.com https://java.example.com;
+  }
+
+   client_max_body_size 64M;
+}
