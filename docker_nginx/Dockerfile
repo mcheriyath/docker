@@ -20,7 +20,10 @@ COPY conf/nginx.conf /etc/nginx/nginx.conf
 #ADD ssl/domain_crt_with_bundle.cer /root/ssl/
 #ADD ssl/domain.key /root/ssl/
 
+# For Centralized Log monitoring using graylog2
 ADD conf/fluentd-source.conf /opt/utils/fluentd-source.conf
+
+# For starting services as a daemon
 COPY conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN usermod -a -G adm td-agent
